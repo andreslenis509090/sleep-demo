@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demostración Patrón Strategy - Higiene del Sueño</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --critical: #dc2626;
+      --normal: #3b82f6;
+      --warning-bg: #fef2f2;
+      --warning-border: #f87171;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 24px 16px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 24px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      color: #0f172a;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    h2 {
+      font-size: 1.15rem;
+      margin-bottom: 16px;
+      color: #334155;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    input, select {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95rem;
+      color: var(--text);
+      background: #fff;
+    }
+
+    input:focus, select:focus {
+      outline: 2px solid var(--primary);
+      border-color: transparent;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #475569;
+      font-weight: 600;
+    }
+
+    td input {
+      width: 100%;
+      padding: 6px 8px;
+    }
+
+    .btn-container {
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    button.btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 10px 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button.btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    /* Mensajes de error */
+    .error-box {
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      color: var(--critical);
+      padding: 14px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-weight: 500;
+      display: none;
+    }
+
+    /* Resultados */
+    .results-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      padding: 12px 16px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+
+    .summary-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .summary-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .summary-value {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    /* Gráfica SVG */
+    .chart-container {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 10px;
+    }
+
+    svg {
+      width: 100%;
+      height: 280px;
+      display: block;
+    }
+
+    .legend {
+      display: flex;
+      gap: 20px;
+      margin-top: 14px;
+      font-size: 0.85rem;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-box {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+    }
+
+    .legend-box.normal { background: var(--normal); }
+    .legend-box.critical { background: var(--critical); }
+    .legend-line {
+      width: 20px;
+      height: 0;
+      border-top: 2px dashed #f59e0b;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Patrón Strategy &bull; Monitoreo de Higiene del Sueño</h1>
+      <p class="subtitle">Demostración interactiva de RN03 y evaluación de días críticos</p>
+    </header>
+
+    <div id="error-message" class="error-box"></div>
+
+    <!-- Parámetros del Usuario y Criterio -->
+    <div class="card">
+      <h2>1. Configuración de Usuario y Estrategia</h2>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="nombre">Nombre de usuario</label>
+          <input type="text" id="nombre" value="Ana" placeholder="Ej: Ana">
+        </div>
+        <div class="form-group">
+          <label for="meta_sueno">Meta de sueño (horas)</label>
+          <input type="number" id="meta_sueno" step="0.5" min="1" max="24" value="8.0" placeholder="Vacía = sin meta">
+        </div>
+        <div class="form-group">
+          <label for="criterio">Estrategia / Criterio</label>
+          <select id="criterio">
+            <option value="">Automático (RN03)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="tolerancia">Tolerancia (horas)</label>
+          <input type="number" id="tolerancia" step="0.1" min="0" max="5" value="0.5">
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla de Registros Semanales -->
+    <div class="card">
+      <h2>2. Registro Semanal (Semana inicio: 2026-10-05)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Día</th>
+            <th>Fecha</th>
+            <th>Hora de Acostarse</th>
+            <th>Hora de Despertar</th>
+            <th>Calificación (1-5)</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-registros">
+          <!-- Filas precargadas por JavaScript -->
+        </tbody>
+      </table>
+
+      <div class="btn-container">
+        <button id="btn-calcular" class="btn-primary" onclick="calcularMetricas()">Calcular métricas</button>
+      </div>
+    </div>
+
+    <!-- Resultados y Gráfica -->
+    <div id="card-resultados" class="card" style="display: none;">
+      <h2>3. Resultados del Cálculo</h2>
+      <div class="results-summary">
+        <div class="summary-item">
+          <span class="summary-label">Estrategia aplicada</span>
+          <span class="summary-value" id="res-estrategia">-</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Umbral crítico</span>
+          <span class="summary-value" id="res-umbral">-</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Promedio semanal</span>
+          <span class="summary-value" id="res-promedio">-</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Días críticos</span>
+          <span class="summary-value" id="res-criticos-count">-</span>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <svg id="chart-svg" viewBox="0 0 700 240"></svg>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item">
+          <span class="legend-box normal"></span>
+          <span>Día normal (según API)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-box critical"></span>
+          <span>Día crítico (según API)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-line"></span>
+          <span>Umbral de la estrategia</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Semana de ejemplo
+    const semanaEjemplo = [
+      { dia: "Lun", fecha: "2026-10-05", acostarse: "22:30", despertar: "06:30", calificacion: 4 },
+      { dia: "Mar", fecha: "2026-10-06", acostarse: "23:30", despertar: "05:30", calificacion: 2 },
+      { dia: "Mié", fecha: "2026-10-07", acostarse: "00:30", despertar: "06:00", calificacion: 2 },
+      { dia: "Jue", fecha: "2026-10-08", acostarse: "23:00", despertar: "06:45", calificacion: 4 },
+      { dia: "Vie", fecha: "2026-10-09", acostarse: "01:00", despertar: "06:30", calificacion: 1 },
+      { dia: "Sáb", fecha: "2026-10-10", acostarse: "22:00", despertar: "06:30", calificacion: 5 },
+      { dia: "Dom", fecha: "2026-10-11", acostarse: "23:00", despertar: "06:30", calificacion: 3 }
+    ];
+
+    // Cargar tabla con la semana de ejemplo
+    function inicializarTabla() {
+      const tbody = document.getElementById("tabla-registros");
+      tbody.innerHTML = "";
+      semanaEjemplo.forEach((item, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><strong>${item.dia}</strong></td>
+          <td>${item.fecha}</td>
+          <td><input type="time" id="acostarse-${index}" value="${item.acostarse}"></td>
+          <td><input type="time" id="despertar-${index}" value="${item.despertar}"></td>
+          <td><input type="number" id="calif-${index}" value="${item.calificacion}" min="1" max="5"></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Cargar estrategias desde la API en el selector
+    async function cargarEstrategias() {
+      const select = document.getElementById("criterio");
+      try {
+        const res = await fetch("/api/estrategias");
+        if (res.ok) {
+          const lista = await res.json();
+          lista.forEach(est => {
+            const opt = document.createElement("option");
+            opt.value = est.id;
+            opt.textContent = est.nombre;
+            select.appendChild(opt);
+          });
+        }
+      } catch (err) {
+        console.error("Error al cargar estrategias:", err);
+      }
+    }
+
+    function mostrarError(mensaje) {
+      const errorBox = document.getElementById("error-message");
+      errorBox.textContent = mensaje;
+      errorBox.style.display = "block";
+      document.getElementById("card-resultados").style.display = "none";
+    }
+
+    function limpiarError() {
+      const errorBox = document.getElementById("error-message");
+      errorBox.textContent = "";
+      errorBox.style.display = "none";
+    }
+
+    // Calcular métricas llamando a la API
+    async function calcularMetricas() {
+      limpiarError();
+
+      const nombre = document.getElementById("nombre").value.trim();
+      const metaRaw = document.getElementById("meta_sueno").value;
+      const metaSueno = metaRaw !== "" ? parseFloat(metaRaw) : null;
+      const criterioSelect = document.getElementById("criterio").value;
+      const estrategia = criterioSelect === "" ? null : criterioSelect;
+      const tolerancia = parseFloat(document.getElementById("tolerancia").value) || 0.5;
+
+      const registros = semanaEjemplo.map((item, index) => ({
+        fecha: item.fecha,
+        hora_acostarse: document.getElementById(`acostarse-${index}`).value,
+        hora_despertar: document.getElementById(`despertar-${index}`).value,
+        calificacion: parseInt(document.getElementById(`calif-${index}`).value, 10) || 1
+      }));
+
+      const payload = {
+        usuario: {
+          nombre: nombre || "Usuario",
+          meta_sueno: metaSueno
+        },
+        semana_inicio: semanaEjemplo[0].fecha,
+        registros: registros,
+        estrategia: estrategia,
+        tolerancia_horas: tolerancia
+      };
+
+      try {
+        const response = await fetch("/api/metricas/semanal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          // Mostrar mensaje de error proveniente de la API (ej. 422 o 404)
+          mostrarError(data.detail || "Error al procesar la solicitud");
+          return;
+        }
+
+        renderizarResultados(data);
+      } catch (err) {
+        mostrarError("Error de conexión con el servidor: " + err.message);
+      }
+    }
+
+    // Renderizar resultados recibidos de la API
+    // REGLA: El JavaScript NO decide qué día es crítico, solo lee dia.critico
+    function renderizarResultados(data) {
+      document.getElementById("card-resultados").style.display = "block";
+      document.getElementById("res-estrategia").textContent = data.estrategia;
+      document.getElementById("res-umbral").textContent = `${data.umbral.toFixed(1)} h`;
+      document.getElementById("res-promedio").textContent = `${data.promedio_semanal.toFixed(1)} h`;
+      document.getElementById("res-criticos-count").textContent = `${data.dias_criticos.length} días`;
+
+      renderizarGrafica(data.dias, data.umbral);
+    }
+
+    function renderizarGrafica(dias, umbral) {
+      const svg = document.getElementById("chart-svg");
+      svg.innerHTML = "";
+
+      const maxHoras = Math.max(10, umbral + 1.5, ...dias.map(d => d.horas));
+      const chartWidth = 700;
+      const chartHeight = 200;
+      const paddingLeft = 50;
+      const paddingBottom = 30;
+      const paddingTop = 20;
+      const plotHeight = chartHeight - paddingTop - paddingBottom;
+      const barSlotWidth = (chartWidth - paddingLeft - 20) / dias.length;
+      const barWidth = 45;
+
+      // Eje base horizontal
+      const baseLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      baseLine.setAttribute("x1", paddingLeft);
+      baseLine.setAttribute("y1", paddingTop + plotHeight);
+      baseLine.setAttribute("x2", chartWidth - 10);
+      baseLine.setAttribute("y2", paddingTop + plotHeight);
+      baseLine.setAttribute("stroke", "#cbd5e1");
+      baseLine.setAttribute("stroke-width", "1");
+      svg.appendChild(baseLine);
+
+      // Línea de Umbral (punteada)
+      const umbralY = paddingTop + plotHeight - (umbral / maxHoras * plotHeight);
+      const lineUmbral = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      lineUmbral.setAttribute("x1", paddingLeft);
+      lineUmbral.setAttribute("y1", umbralY);
+      lineUmbral.setAttribute("x2", chartWidth - 10);
+      lineUmbral.setAttribute("y2", umbralY);
+      lineUmbral.setAttribute("stroke", "#f59e0b");
+      lineUmbral.setAttribute("stroke-width", "2");
+      lineUmbral.setAttribute("stroke-dasharray", "5,5");
+      svg.appendChild(lineUmbral);
+
+      // Texto de Umbral
+      const txtUmbral = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      txtUmbral.setAttribute("x", paddingLeft - 6);
+      txtUmbral.setAttribute("y", umbralY + 4);
+      txtUmbral.setAttribute("text-anchor", "end");
+      txtUmbral.setAttribute("font-size", "11");
+      txtUmbral.setAttribute("fill", "#d97706");
+      txtUmbral.setAttribute("font-weight", "bold");
+      txtUmbral.textContent = `${umbral}h`;
+      svg.appendChild(txtUmbral);
+
+      // Dibujar barras para cada día
+      dias.forEach((d, i) => {
+        const x = paddingLeft + (i * barSlotWidth) + (barSlotWidth - barWidth) / 2;
+        const h = (d.horas / maxHoras) * plotHeight;
+        const y = paddingTop + plotHeight - h;
+
+        // IMPORTANTE: El color de la barra depende exclusivamente de d.critico calculado por la API
+        const color = d.critico ? "#dc2626" : "#3b82f6";
+
+        // Barra
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("x", x);
+        rect.setAttribute("y", y);
+        rect.setAttribute("width", barWidth);
+        rect.setAttribute("height", h);
+        rect.setAttribute("fill", color);
+        rect.setAttribute("rx", "4");
+        svg.appendChild(rect);
+
+        // Etiqueta de horas encima de la barra
+        const textH = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textH.setAttribute("x", x + barWidth / 2);
+        textH.setAttribute("y", y - 6);
+        textH.setAttribute("text-anchor", "middle");
+        textH.setAttribute("font-size", "11");
+        textH.setAttribute("font-weight", "bold");
+        textH.setAttribute("fill", color);
+        textH.textContent = `${d.horas.toFixed(1)}h`;
+        svg.appendChild(textH);
+
+        // Etiqueta del día debajo de la barra
+        const fechaObj = new Date(d.fecha + "T00:00:00");
+        const nombreDia = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"][i];
+        const diaNum = d.fecha.slice(8);
+        const textD = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textD.setAttribute("x", x + barWidth / 2);
+        textD.setAttribute("y", paddingTop + plotHeight + 18);
+        textD.setAttribute("text-anchor", "middle");
+        textD.setAttribute("font-size", "11");
+        textD.setAttribute("fill", "#475569");
+        textD.textContent = `${nombreDia} ${diaNum}`;
+        svg.appendChild(textD);
+      });
+    }
+
+    // Inicialización
+    window.addEventListener("DOMContentLoaded", () => {
+      inicializarTabla();
+      cargarEstrategias();
+    });
+  </script>
+</body>
+</html>
